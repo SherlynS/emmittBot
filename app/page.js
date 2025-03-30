@@ -1,95 +1,122 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
+import { Box, Button, Stack, TextField} from '@mui/material'
+import { useState } from 'react'
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.js</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: "Hello, I'm Emmet a sustainability expert, how can I help you today?",
+    },
+  ])
+  const [message, setMessage] = useState('')
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const sendMessage = async () => {
+    setMessage('')  // Clear the input field
+    setMessages((messages) => [
+      ...messages,
+      { role: 'user', content: message },  // Add the user's message to the chat
+      { role: 'assistant', content: '' },  // Add a placeholder for the assistant's response
+    ])
+  
+    // Send the message to the server
+    const response = fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([...messages, { role: 'user', content: message }]),
+    }).then(async (res) => {
+      const reader = res.body.getReader()  // Get a reader to read the response body
+      const decoder = new TextDecoder()  // Create a decoder to decode the response text
+  
+      let result = ''
+      // Function to process the text from the response
+      return reader.read().then(function processText({ done, value }) {
+        if (done) {
+          return result
+        }
+        const text = decoder.decode(value || new Uint8Array(), { stream: true })  // Decode the text
+        setMessages((messages) => {
+          let lastMessage = messages[messages.length - 1]  // Get the last message (assistant's placeholder)
+          let otherMessages = messages.slice(0, messages.length - 1)  // Get all other messages
+          return [
+            ...otherMessages,
+            { ...lastMessage, content: lastMessage.content + text },  // Append the decoded text to the assistant's message
+          ]
+        })
+        return reader.read().then(processText)  // Continue reading the next chunk of the response
+      })
+    })
+  }
+
+  return (
+    <Box
+      width="100vw"
+      height="92vh"
+      display="flex"
+      flexDirection="column"
+      justifyContent="center"
+      alignItems="center"
+    >
+      <Stack
+        direction={'column'}
+        width="800px"
+        height="650px"
+        border="3px solid white"
+        borderRadius={"16px"}
+        p={2}
+        spacing={3}
+        sx={{ boxShadow: 20 , background:"linear-gradient(to right, #CCCCFF 0%, #89CFF0 100%)"}}
+      >
+        
+        <Stack
+          direction={'column'}
+          spacing={2}
+          flexGrow={1}
+          overflow="auto"
+          maxHeight="100%"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          {messages.map((message, index) => (
+            <Box
+              key={index}
+              display="flex"
+              justifyContent={
+                message.role === 'assistant' ? 'flex-start' : 'flex-end'
+              }
+              
+            >
+              <Box
+                bgcolor={
+                  message.role === 'assistant'
+                    ? 'primary.main'
+                    : 'secondary.main'
+                }
+                color="white"
+                borderRadius={20}
+                p={5}
+                sx={{ boxShadow: 3 }}
+
+              >
+                {message.content}
+              </Box>
+            </Box>
+          ))}
+        </Stack>
+        <Stack direction={'row'} spacing={2}>
+          <TextField
+            label="Message"
+            fullWidth
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
           />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+      
+          <Button variant="contained" onClick={sendMessage}>
+            Send
+          </Button>
+        </Stack>
+      </Stack>
+    </Box>
+  
+  )
 }
