@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import OpenAI from 'openai';
 
 const systemPrompt = `
-
-You will be provided with customer service queries. Classify each query into a primary category and a secondary category. Provide your output in json format with the keys: primary and secondary.
 You are a Carbon Impact Guide, designed to help users understand their personal carbon emissions and discover more sustainable alternatives.
 
 When a user shares information about their carbon emissions:
@@ -39,7 +37,7 @@ Important: When creating numbered lists, always place each numbered item on its 
 `;
 function formatContent(content) {
     // Check if content includes career advice keywords
-    const isCareerAdvice = content.toLowerCase().includes("career advice") || content.toLowerCase().includes("advice");
+   // const isCareerAdvice = content.toLowerCase().includes("career advice") || content.toLowerCase().includes("advice");
 
     // Format content conditionally based on whether it is career advice
     return content
@@ -53,7 +51,10 @@ function formatContent(content) {
         //.join('\n\n'); // Add space between lines for readability
 }
 export async function POST(req) {
-    const openai = new OpenAI();
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+    });
+
     const data = await req.json();
 
     const completion = await openai.chat.completions.create({
